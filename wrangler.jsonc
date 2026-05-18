@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json.schemastore.org/wrangler.json",
+  "name": "ta-done-list",
+  "pages_build_output_dir": "dist",
+  "assets": {
+    "directory": "./dist"
+  },
+  "compatibility_date": "2026-05-18"
+}
