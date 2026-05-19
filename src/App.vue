@@ -39,11 +39,9 @@ onMounted(async () => {
   await waitForInitialAuth()
 
   const user = currentUser.value
-  console.log('user', user)
   if (user?.uid) {
     try {
       const localData = await getItemFromLocal()
-      console.log('dataFromStore', localData)
       if (Array.isArray(localData?.itemList)) {
         itemList.value = localData.itemList
       }
@@ -94,7 +92,6 @@ function moveTargetDate(type: 'day', amount: number) {
 
 function onTargetDateInput() {
   const inputDate = inputTargetDate.value?.valueAsDate
-  console.log('onTargetDateInput', inputDate)
   if (inputDate && !isNaN(inputDate.getTime())) {
     clearModifyingList()
     const { year, month, day } = calcDatetime(inputDate)
@@ -189,8 +186,6 @@ function getModifyingItem(datetimeData: TDModifyingItem) {
 
 // 인증 함수 (4.3에서 구현)
 async function onSignUp() {
-  // TODO: Firebase signUp 구현
-  console.log('Sign up:', loginEmail.value)
   await signUp(loginEmail.value, loginPassword.value)
   const user = getCurrentUser()
   if (user) {
@@ -201,8 +196,6 @@ async function onSignUp() {
 }
 
 async function onSignIn() {
-  // TODO: Firebase signIn 구현
-  console.log('Sign in:', loginEmail.value)
   await signIn(loginEmail.value, loginPassword.value)
   const user = getCurrentUser()
   if (user) {
@@ -218,7 +211,6 @@ async function onSignIn() {
 }
 
 async function onSignOut() {
-  // TODO: Firebase signOut 구현
   await signOut()
   await clearLocalData()
   currentUser.value = null

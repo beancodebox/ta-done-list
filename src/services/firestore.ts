@@ -10,7 +10,6 @@ export async function getItemsFromCloud(uid: string): Promise<TaDoneUser> {
       timestamp: 0,
       lastSynced: 0,
     } as TaDoneUser
-    console.log(data, data.toJSON())
     if (data.exists()) {
       tdUser = {
         ...(data.data() as TaDoneUser),
@@ -51,8 +50,8 @@ export async function saveItemsToCloud(uid: string, data: Partial<TaDoneUser>): 
 export async function syncWithCloud(
   userId: string,
   localItems: TaDoneItem[],
-  localUpdatedAt: number
-): Promise<{ items: TaDoneItem[], timestamp: number }> {
+  localUpdatedAt: number,
+): Promise<{ items: TaDoneItem[]; timestamp: number }> {
   // 1. 클라우드 데이터 로드
   const cloudData = await getItemsFromCloud(userId)
 
