@@ -24,7 +24,6 @@ async function initTaDoneUser(user: User) {
 }
 
 export async function signUp(email: string, password: string): Promise<User> {
-  console.log('signUp')
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password)
     // Signed up
@@ -41,7 +40,6 @@ export async function signUp(email: string, password: string): Promise<User> {
 }
 
 export async function signIn(email: string, password: string): Promise<User> {
-  console.log('signIn')
   try {
     const userCredential = await signInWithEmailAndPassword(auth, email, password)
     // Signed up
@@ -56,7 +54,6 @@ export async function signIn(email: string, password: string): Promise<User> {
   }
 }
 export async function signOut(): Promise<void> {
-  console.log('signOut')
   try {
     await signOutUser(auth)
   } catch (e: any) {
@@ -68,7 +65,6 @@ export async function signOut(): Promise<void> {
   }
 }
 export function getCurrentUser(): User | null {
-  console.log('getCurrentUser')
   return auth.currentUser
 }
 
