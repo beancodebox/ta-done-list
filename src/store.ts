@@ -16,6 +16,9 @@ export type TaDoneItem = {
   updatedAt: number
 }
 
+export type TaDoneDatetime = TaDoneItem['datetime']
+export type TaDoneDate = Pick<TaDoneDatetime, 'year' | 'month' | 'day'>
+
 const KEY = 'ITEM_LIST'
 const LOCAL_UPDATED_AT_KEY = 'localUpdatedAt'
 

@@ -1,38 +1,11 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, useTemplateRef, watch, type Ref } from 'vue'
-import { getItemFromLocal, setItemToLocal, getLocalUpdatedAt, setLocalUpdatedAt, type TaDoneItem, type TaDoneUser, clearLocalData } from './store'
+import { computed, onMounted, ref, useTemplateRef, type Ref } from 'vue'
+import { getItemFromLocal, setItemToLocal, getLocalUpdatedAt, setLocalUpdatedAt, type TaDoneItem, type TaDoneDatetime, type TaDoneDate, clearLocalData } from './store'
 import { currentUser, getCurrentUser, signIn, signOut, signUp, waitForInitialAuth } from './services/auth'
 import { syncWithCloud } from './services/firestore'
+import { parseTextDataFormat, type ParseResult } from './services/importParser'
 
-type TDDatetime = {
-  year: string
-  month: string
-  day: string
-  hour: string
-}
-type TDDate = Pick<TDDatetime, 'year' | 'month' | 'day'>
-const timeZone = ref('Asia/Seoul')
-const locale = ref('ko-KR')
-
-// 인증
-const loginEmail = ref('')
-const loginPassword = ref('')
-
-const itemList = ref<Array<TaDoneItem>>([])
-const newItemTitle = ref('')
-const targetDatetime = ref<TDDate>() as Ref<TDDate>
-const targetDatetimeString = computed(() => {
-  if (targetDatetime.value == null) return ''
-  const { year, month, day } = targetDatetime.value
-  const weekday = (new Date(`${year}-${month}-${day}`)).toLocaleDateString(locale.value, { weekday: "short" })
-  return `${year}-${month}-${day} (${weekday})`
-})
-const targetItemList = computed(() => {
-  const datetime = targetDatetime.value
-  return itemList.value.filter(({ datetime: d }) => d.year === datetime.year && d.month === datetime.month && d.day === datetime.day).sort((d1, d2) => d1.datetime.hour > d2.datetime.hour ? -1 : 1)
-})
-const inputTargetDate = useTemplateRef('input-target-date')
-
+// ===== 로딩 상태 =====
 const isLoading = ref(true)
 onMounted(async () => {
   isLoading.value = true
@@ -56,135 +29,14 @@ onMounted(async () => {
   isLoading.value = false
 })
 
+// ===== 설정 =====
+const timeZone = ref('Asia/Seoul')
+const locale = ref('ko-KR')
 
-function calcDatetime(_d: number | Date) {
-  const d = typeof _d === 'number' ? new Date(_d) : _d
+// ===== 인증 (Authentication) =====
+const loginEmail = ref('')
+const loginPassword = ref('')
 
-  const formatter = new Intl.DateTimeFormat(locale.value, {
-    timeZone: timeZone.value,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  })
-
-  const parts = formatter.formatToParts(d)
-
-  const datetime = parts.reduce((o, d) => ({
-    ...o,
-    ...(['year', 'month', 'day', 'hour'].includes(d.type) ? { [d.type]: d.value } : {})
-  })
-    , {} as TDDatetime)
-  return datetime
-}
-
-function moveTargetDate(type: 'day', amount: number) {
-  if (type === 'day') {
-    clearModifyingList()
-    const { year, month, day } = targetDatetime.value
-    const newTargetDate = new Date(`${year}-${month}-${day}`)
-    newTargetDate.setDate(newTargetDate.getDate() + amount)
-    targetDatetime.value = calcDatetime(newTargetDate)
-  }
-}
-
-function onTargetDateInput() {
-  const inputDate = inputTargetDate.value?.valueAsDate
-  if (inputDate && !isNaN(inputDate.getTime())) {
-    clearModifyingList()
-    const { year, month, day } = calcDatetime(inputDate)
-    targetDatetime.value = {
-      year, month, day
-    }
-  }
-}
-
-function onAddItem() {
-  const { value } = newItemTitle
-  if (!value.trim()) return
-
-  const newItem: Partial<TaDoneItem> = {}
-  const now = new Date()
-  const datetime = calcDatetime(now)
-
-  newItem.datetime = datetime
-  newItem.title = value
-
-  insertItem(newItem as TaDoneItem)
-
-  newItemTitle.value = ''
-}
-function onRemoveItem(datetime: TDDatetime) {
-  let idx = -1
-  if ((idx = getItemIndex(datetime)) >= 0) {
-    itemList.value.splice(idx, 1)
-  }
-
-  setItemToLocal({ itemList: itemList.value })
-
-  newItemTitle.value = ''
-}
-function getItemIndex(datetime: TDDatetime) {
-  return itemList.value.findIndex((({ datetime: d }) => d.year === datetime.year && d.month === datetime.month && d.day === datetime.day && d.hour === datetime.hour))
-}
-function insertItem(item: TaDoneItem) {
-  let idx = -1
-  const now = Date.now()
-  const { datetime: key, ...itemValue } = item
-  if ((idx = getItemIndex(key)) >= 0) {
-    const newTitle = `${itemList.value[idx]!.title} ${item.title}`
-    itemList.value[idx] = { ...itemList.value[idx]!, ...itemValue }
-    itemList.value[idx]!.title = newTitle
-    itemList.value[idx]!.updatedAt = now
-  } else {
-    const newItem: TaDoneItem = { ...item, updatedAt: now }
-    itemList.value.push(newItem)
-  }
-  setItemToLocal({ itemList: itemList.value })
-}
-function updateItem(item: TaDoneItem) {
-  let idx = -1
-  const now = Date.now()
-  const { datetime: key, ...itemValue } = item
-  if ((idx = getItemIndex(key)) >= 0) {
-    itemList.value[idx] = { ...itemList.value[idx]!, ...itemValue, updatedAt: now }
-    setItemToLocal({ itemList: itemList.value })
-  }
-}
-
-// ===
-// 수정 모드
-// ===
-type TDModifyingItem = Partial<TaDoneItem> & Pick<TaDoneItem, 'datetime'>
-const modifyingList = ref<Array<TDModifyingItem>>([])
-function clearModifyingList() { modifyingList.value = [] }
-function toggleModifyingList(datetimeData: TDModifyingItem) {
-  let idx = -1
-  const now = Date.now()
-  const datetime = datetimeData.datetime
-  if ((idx = getModifyingIndex(datetime)) >= 0) {
-    updateItem({ datetime, title: datetimeData.title ?? '', updatedAt: now })
-
-    modifyingList.value.splice(idx, 1)
-  } else {
-    modifyingList.value.push({ datetime, title: datetimeData.title })
-  }
-}
-function getModifyingIndex(datetime: TDDatetime) {
-  return modifyingList.value.findIndex((({ datetime: d }) => d.year === datetime.year && d.month === datetime.month && d.day === datetime.day && d.hour === datetime.hour))
-}
-function isModifying(datetime: TDDatetime) { return getModifyingIndex(datetime) >= 0 }
-function getModifyingItem(datetimeData: TDModifyingItem) {
-  let idx = -1
-  const datetime = datetimeData.datetime
-  if ((idx = getModifyingIndex(datetime)) >= 0) {
-    return modifyingList.value[idx]!
-  }
-}
-
-// 인증 함수 (4.3에서 구현)
 async function onSignUp() {
   await signUp(loginEmail.value, loginPassword.value)
   const user = getCurrentUser()
@@ -218,6 +70,160 @@ async function onSignOut() {
   loginPassword.value = ''
 }
 
+// ===== 항목 관리 (Items) =====
+const itemList = ref<Array<TaDoneItem>>([])
+const newItemTitle = ref('')
+
+function calcDatetime(_d: number | Date) {
+  const d = typeof _d === 'number' ? new Date(_d) : _d
+
+  const formatter = new Intl.DateTimeFormat(locale.value, {
+    timeZone: timeZone.value,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  })
+
+  const parts = formatter.formatToParts(d)
+
+  const datetime = parts.reduce((o, d) => ({
+    ...o,
+    ...(['year', 'month', 'day', 'hour'].includes(d.type) ? { [d.type]: d.value } : {})
+  })
+    , {} as TaDoneDatetime)
+  return datetime
+}
+
+function getItemIndex(datetime: TaDoneDatetime) {
+  return itemList.value.findIndex((({ datetime: d }) => d.year === datetime.year && d.month === datetime.month && d.day === datetime.day && d.hour === datetime.hour))
+}
+
+function insertItem(item: TaDoneItem) {
+  let idx = -1
+  const now = Date.now()
+  const { datetime: key, ...itemValue } = item
+  if ((idx = getItemIndex(key)) >= 0) {
+    const newTitle = `${itemList.value[idx]!.title} ${item.title}`
+    itemList.value[idx] = { ...itemList.value[idx]!, ...itemValue }
+    itemList.value[idx]!.title = newTitle
+    itemList.value[idx]!.updatedAt = now
+  } else {
+    const newItem: TaDoneItem = { ...item, updatedAt: now }
+    itemList.value.push(newItem)
+  }
+  setItemToLocal({ itemList: itemList.value })
+}
+
+function updateItem(item: TaDoneItem) {
+  let idx = -1
+  const now = Date.now()
+  const { datetime: key, ...itemValue } = item
+  if ((idx = getItemIndex(key)) >= 0) {
+    itemList.value[idx] = { ...itemList.value[idx]!, ...itemValue, updatedAt: now }
+    setItemToLocal({ itemList: itemList.value })
+  }
+}
+
+function onAddItem() {
+  const { value } = newItemTitle
+  if (!value.trim()) return
+
+  const newItem: Partial<TaDoneItem> = {}
+  const now = new Date()
+  const datetime = calcDatetime(now)
+
+  newItem.datetime = datetime
+  newItem.title = value
+
+  insertItem(newItem as TaDoneItem)
+
+  newItemTitle.value = ''
+}
+
+function onRemoveItem(datetime: TaDoneDatetime) {
+  let idx = -1
+  if ((idx = getItemIndex(datetime)) >= 0) {
+    itemList.value.splice(idx, 1)
+  }
+
+  setItemToLocal({ itemList: itemList.value })
+
+  newItemTitle.value = ''
+}
+
+// ===== 날짜 선택 (Date Selection) =====
+const targetDatetime = ref<TaDoneDate>() as Ref<TaDoneDate>
+const targetDatetimeString = computed(() => {
+  if (targetDatetime.value == null) return ''
+  const { year, month, day } = targetDatetime.value
+  const weekday = (new Date(`${year}-${month}-${day}`)).toLocaleDateString(locale.value, { weekday: "short" })
+  return `${year}-${month}-${day} (${weekday})`
+})
+const targetItemList = computed(() => {
+  const datetime = targetDatetime.value
+  return itemList.value.filter(({ datetime: d }) => d.year === datetime.year && d.month === datetime.month && d.day === datetime.day).sort((d1, d2) => d1.datetime.hour > d2.datetime.hour ? -1 : 1)
+})
+const inputTargetDate = useTemplateRef('input-target-date')
+
+function moveTargetDate(type: 'day', amount: number) {
+  if (type === 'day') {
+    clearModifyingList()
+    const { year, month, day } = targetDatetime.value
+    const newTargetDate = new Date(`${year}-${month}-${day}`)
+    newTargetDate.setDate(newTargetDate.getDate() + amount)
+    targetDatetime.value = calcDatetime(newTargetDate)
+  }
+}
+
+function onTargetDateInput() {
+  const inputDate = inputTargetDate.value?.valueAsDate
+  if (inputDate && !isNaN(inputDate.getTime())) {
+    clearModifyingList()
+    const { year, month, day } = calcDatetime(inputDate)
+    targetDatetime.value = {
+      year, month, day
+    }
+  }
+}
+
+// ===== 항목 수정 (Modifying) =====
+type TaDoneModifyingItem = Partial<TaDoneItem> & Pick<TaDoneItem, 'datetime'>
+const modifyingList = ref<Array<TaDoneModifyingItem>>([])
+
+function clearModifyingList() { modifyingList.value = [] }
+
+function toggleModifyingList(datetimeData: TaDoneModifyingItem, doUpdate = true) {
+  let idx = -1
+  const now = Date.now()
+  const datetime = datetimeData.datetime
+  if ((idx = getModifyingIndex(datetime)) >= 0) {
+    if (doUpdate)
+      updateItem({ datetime, title: datetimeData.title ?? '', updatedAt: now })
+
+    modifyingList.value.splice(idx, 1)
+  } else {
+    modifyingList.value.push({ datetime, title: datetimeData.title })
+  }
+}
+
+function getModifyingIndex(datetime: TaDoneDatetime) {
+  return modifyingList.value.findIndex((({ datetime: d }) => d.year === datetime.year && d.month === datetime.month && d.day === datetime.day && d.hour === datetime.hour))
+}
+
+function isModifying(datetime: TaDoneDatetime) { return getModifyingIndex(datetime) >= 0 }
+
+function getModifyingItem(datetimeData: TaDoneModifyingItem) {
+  let idx = -1
+  const datetime = datetimeData.datetime
+  if ((idx = getModifyingIndex(datetime)) >= 0) {
+    return modifyingList.value[idx]!
+  }
+}
+
+// ===== 동기화 (Sync) =====
 async function onSync() {
   if (currentUser.value) {
     const localTime = getLocalUpdatedAt()
@@ -225,6 +231,51 @@ async function onSync() {
     itemList.value = result.items
     setLocalUpdatedAt(result.timestamp)
   }
+}
+
+// ===== Import =====
+type ImportMode = 'keep' | 'overwrite'
+const showImportModal = ref(false)
+const importMode = ref<ImportMode>('keep')
+const importText = ref('')
+const importParseResult = ref<ParseResult | null>(null)
+
+function onImportButtonClick() {
+  showImportModal.value = true
+  importText.value = ''
+  importParseResult.value = null
+}
+
+function onImportPreview() {
+  if (!importText.value.trim()) {
+    importParseResult.value = null
+    return
+  }
+  importParseResult.value = parseTextDataFormat(importText.value)
+}
+
+function onImportConfirm() {
+  if (!importParseResult.value || importParseResult.value.items.length === 0) return
+
+  importParseResult.value.items.forEach(item => {
+    const idx = getItemIndex(item.datetime)
+    if (idx < 0) {
+      itemList.value.push(item)
+    } else if (importMode.value === 'overwrite') {
+      itemList.value[idx] = item
+    }
+  })
+
+  setItemToLocal({ itemList: itemList.value })
+  showImportModal.value = false
+  importText.value = ''
+  importParseResult.value = null
+}
+
+function closeImportModal() {
+  showImportModal.value = false
+  importText.value = ''
+  importParseResult.value = null
 }
 
 </script>
@@ -257,6 +308,7 @@ async function onSync() {
       </div>
       <div :style="{ display: 'flex', gap: '10px', alignItems: 'center' }">
         <span :style="{ fontSize: '12px' }">{{ currentUser.email }}</span>
+        <button type="button" @click="onImportButtonClick">Import</button>
         <button type="button" @click="onSync">동기화</button>
         <button type="button" @click="onSignOut">로그아웃</button>
       </div>
@@ -273,15 +325,55 @@ async function onSync() {
           <template v-if="isModifying(item.datetime)">
             <input type="text" v-model="getModifyingItem(item)!.title!" />
             <button type="button" @click="toggleModifyingList(getModifyingItem(item)!)">✅</button>
+            <button type="button" @click="toggleModifyingList(getModifyingItem(item)!, false)">🆑</button>
           </template>
           <template v-else>
             <span>{{ item.title }}</span>
             <button type="button" @click="toggleModifyingList(item)">📝</button>
+            <button type="button" @click="onRemoveItem(item.datetime)">❌</button>
           </template>
-          <button type="button" @click="onRemoveItem(item.datetime)">❌</button>
         </div>
       </div>
     </main>
+
+    <!-- Import Modal -->
+    <div v-if="showImportModal">
+      <div>
+        <h2>Import</h2>
+        <button @click="closeImportModal">닫기</button>
+      </div>
+
+      <textarea v-model="importText"></textarea>
+
+      <div>
+        <label>
+          <input type="radio" v-model="importMode" value="keep" />
+          유지하기
+        </label>
+        <label>
+          <input type="radio" v-model="importMode" value="overwrite" />
+          덮어쓰기
+        </label>
+      </div>
+
+      <button @click="onImportPreview">미리보기</button>
+
+      <div v-if="importParseResult">
+        <p>파싱: {{ importParseResult.summary.parsedItems }}개, 에러: {{ importParseResult.errors.length }}개</p>
+        <div v-if="importParseResult.errors.length > 0">
+          <p>에러:</p>
+          <ul>
+            <li v-for="error in importParseResult.errors.slice(0, 5)" :key="`${error.line}-${error.content}`">
+              Line {{ error.line }}: {{ error.reason }}
+            </li>
+          </ul>
+          <p v-if="importParseResult.errors.length > 5">... 그 외 {{ importParseResult.errors.length - 5 }}개</p>
+        </div>
+      </div>
+
+      <button @click="closeImportModal">취소</button>
+      <button @click="onImportConfirm" :disabled="!importParseResult || importParseResult.items.length === 0">Import</button>
+    </div>
   </div>
 </template>
 
