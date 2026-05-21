@@ -1,0 +1,18 @@
+{
+  "name": "TaDone - 한 일을 기록하는 앱",
+  "short_name": "TaDone",
+  "description": "시간별로 한 일을 기록하고 관리하는 앱",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "32x32",
+      "type": "image/x-icon"
+    }
+  ]
+}
