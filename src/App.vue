@@ -229,6 +229,9 @@ async function onSync() {
     const localTime = getLocalUpdatedAt()
     const result = await syncWithCloud(currentUser.value.uid, itemList.value, localTime)
     itemList.value = result.items
+    if (result.isCloudNewer) {
+      setItemToLocal({ itemList: result.items })
+    }
     setLocalUpdatedAt(result.timestamp)
   }
 }
