@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tadone-v1'
+const CACHE_NAME = 'tadone-v2'
 const urlsToCache = [
   '/',
   '/index.html',
