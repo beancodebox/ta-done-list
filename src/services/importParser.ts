@@ -140,3 +140,35 @@ function isValidDate(year: string, month: string, day: string): boolean {
   const [parsedYear, parsedMonth, parsedDay] = parts as [string, string, string]
   return parsedYear === year && parsedMonth === month && parsedDay === day
 }
+
+export function exportTextDataFormat(items: TaDoneItem[]): string {
+  if (items.length === 0) return ''
+
+  // 날짜별로 그룹화
+  const grouped = new Map<string, TaDoneItem[]>()
+  items.forEach(item => {
+    const dateKey = `${item.datetime.year}-${item.datetime.month}-${item.datetime.day}`
+    if (!grouped.has(dateKey)) {
+      grouped.set(dateKey, [])
+    }
+    grouped.get(dateKey)!.push(item)
+  })
+
+  // 날짜 순서대로 정렬
+  const sortedDates = Array.from(grouped.keys()).sort()
+
+  // 텍스트 생성
+  const lines: string[] = []
+  sortedDates.forEach(date => {
+    lines.push(date)
+    const itemsForDate = grouped.get(date)!
+    // 시간 순서대로 정렬
+    itemsForDate.sort((a, b) => a.datetime.hour.localeCompare(b.datetime.hour))
+    itemsForDate.forEach(item => {
+      lines.push(`${item.datetime.hour} ${item.title}`)
+    })
+    lines.push('')
+  })
+
+  return lines.join('\n').trim()
+}

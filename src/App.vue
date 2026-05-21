@@ -3,7 +3,7 @@ import { computed, onMounted, ref, useTemplateRef, type Ref } from 'vue'
 import { getItemFromLocal, setItemToLocal, getLocalUpdatedAt, setLocalUpdatedAt, type TaDoneItem, type TaDoneDatetime, type TaDoneDate, clearLocalData } from './store'
 import { currentUser, getCurrentUser, signIn, signOut, signUp, waitForInitialAuth } from './services/auth'
 import { syncWithCloud } from './services/firestore'
-import { parseTextDataFormat, type ParseResult } from './services/importParser'
+import { parseTextDataFormat, exportTextDataFormat, type ParseResult } from './services/importParser'
 
 // ===== 로딩 상태 =====
 const isLoading = ref(true)
@@ -277,6 +277,10 @@ function closeImportModal() {
   importText.value = ''
   importParseResult.value = null
 }
+
+// TODO: Export 기능 추가 (UI 잡을 때 구현)
+// - exportTextDataFormat(itemList.value) 호출
+// - 다운로드 또는 클립보드 복사
 
 </script>
 
