@@ -1,14 +1,10 @@
-import { computed, ref, useTemplateRef, type Ref } from 'vue'
-import { type TaDoneDate, type TaDoneItem, type TaDoneDatetime } from '../store'
-import { useAuth } from './useAuth'
+import { computed } from 'vue'
+import { type TaDoneDatetime } from '../store'
+import { currentUser, itemList, targetDatetime } from '@/stores/appState'
+import { useItems } from './useItems'
 
-export function useDateSelection(
-  itemList: Ref<TaDoneItem[]>,
-  calcDatetime: (d: number | Date) => TaDoneDatetime,
-) {
-  const targetDatetime = ref<TaDoneDate>() as Ref<TaDoneDate>
-  const inputTargetDate = useTemplateRef<HTMLInputElement>('input-target-date')
-  const { currentUser } = useAuth()
+export function useDateSelection() {
+  const { calcDatetime } = useItems()
 
   const targetDatetimeString = computed(() => {
     if (targetDatetime.value == null) return ''
@@ -21,6 +17,7 @@ export function useDateSelection(
   })
 
   const targetItemList = computed(() => {
+    if (targetDatetime.value == null) return []
     const datetime = targetDatetime.value
     return itemList.value
       .filter(
@@ -30,7 +27,19 @@ export function useDateSelection(
       .sort((d1, d2) => (d1.datetime.hour > d2.datetime.hour ? -1 : 1))
   })
 
+  const setTargetDate = (inputDate: Date | null) => {
+    if (inputDate && !isNaN(inputDate.getTime())) {
+      const { year, month, day } = calcDatetime(inputDate)
+      targetDatetime.value = {
+        year,
+        month,
+        day,
+      } as TaDoneDatetime
+    }
+  }
+
   const moveTargetDate = (type: 'day', amount: number) => {
+    if (targetDatetime.value == null) return
     if (type === 'day') {
       const { year, month, day } = targetDatetime.value
       const newTargetDate = new Date(`${year}-${month}-${day}`)
@@ -39,25 +48,11 @@ export function useDateSelection(
     }
   }
 
-  const onTargetDateInput = (event: Event) => {
-    const target = event.target as HTMLInputElement
-    const inputDate = target?.valueAsDate
-    if (inputDate && !isNaN(inputDate.getTime())) {
-      const { year, month, day } = calcDatetime(inputDate)
-      targetDatetime.value = {
-        year,
-        month,
-        day,
-      }
-    }
-  }
-
   return {
     targetDatetime,
     targetDatetimeString,
     targetItemList,
-    inputTargetDate,
+    setTargetDate,
     moveTargetDate,
-    onTargetDateInput,
   }
 }

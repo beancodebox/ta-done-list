@@ -1,10 +1,11 @@
-import { ref } from 'vue'
-import { type TaDoneItem, type TaDoneDatetime } from '../store'
+import { modifyingList } from '@/stores/appState'
+import { type TaDoneItem, type TaDoneDatetime } from '@/store'
+import { useItems } from './useItems'
 
 export type TaDoneModifyingItem = Partial<TaDoneItem> & Pick<TaDoneItem, 'datetime'>
 
-export function useItemModification(updateItem: (item: TaDoneItem) => void) {
-  const modifyingList = ref<Array<TaDoneModifyingItem>>([])
+export function useItemModification() {
+  const { updateItem } = useItems()
 
   const clearModifyingList = () => {
     modifyingList.value = []
@@ -20,14 +21,15 @@ export function useItemModification(updateItem: (item: TaDoneItem) => void) {
     )
   }
 
-  const toggleModifyingList = (datetimeData: TaDoneModifyingItem, doUpdate = true) => {
+  const _toggleModifyingList = (datetimeData?: TaDoneModifyingItem, doUpdate = true) => {
+    if (!datetimeData) return
     let idx = -1
-    const now = Date.now()
     const datetime = datetimeData.datetime
     if ((idx = getModifyingIndex(datetime)) >= 0) {
-      if (doUpdate)
+      if (doUpdate) {
+        const now = Date.now()
         updateItem({ datetime, title: datetimeData.title ?? '', updatedAt: now } as TaDoneItem)
-
+      }
       modifyingList.value.splice(idx, 1)
     } else {
       modifyingList.value.push({ datetime, title: datetimeData.title })
@@ -45,12 +47,23 @@ export function useItemModification(updateItem: (item: TaDoneItem) => void) {
       return modifyingList.value[idx]!
     }
   }
+  const startModifyingItem = (datetimeData?: TaDoneModifyingItem) => {
+    _toggleModifyingList(datetimeData)
+  }
+  const cancelModifyingItem = (datetimeData?: TaDoneModifyingItem) => {
+    _toggleModifyingList(datetimeData, false)
+  }
+  const confirmModifyingItem = (datetimeData?: TaDoneModifyingItem) => {
+    _toggleModifyingList(datetimeData, true)
+  }
 
   return {
     modifyingList,
     clearModifyingList,
-    toggleModifyingList,
     isModifying,
     getModifyingItem,
+    startModifyingItem,
+    cancelModifyingItem,
+    confirmModifyingItem,
   }
 }

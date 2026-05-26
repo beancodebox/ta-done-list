@@ -1,17 +1,20 @@
-import { ref, type Ref } from 'vue'
-import { setItemToLocal, type TaDoneItem } from '../store'
-import { parseTextDataFormat, type ParseResult } from '../services/importParser'
+import { setItemToLocal } from '@/store'
+import { parseTextDataFormat } from '@/services/importParser'
+import {
+  importMode,
+  importParseResult,
+  importText,
+  isImportModalShowing,
+  itemList,
+} from '@/stores/appState'
+import { useItems } from './useItems'
 
-type ImportMode = 'keep' | 'overwrite'
-
-export function useImport(itemList: Ref<TaDoneItem[]>, getItemIndex: (datetime: any) => number) {
-  const showImportModal = ref(false)
-  const importMode = ref<ImportMode>('keep')
-  const importText = ref('')
-  const importParseResult = ref<ParseResult | null>(null)
-
+export function useImport() {
+  // itemList: Ref<TaDoneItem[]>,
+  // getItemIndex: (datetime: any) => number
+  const { getItemIndex } = useItems()
   const onImportButtonClick = () => {
-    showImportModal.value = true
+    isImportModalShowing.value = true
     importText.value = ''
     importParseResult.value = null
   }
@@ -27,29 +30,29 @@ export function useImport(itemList: Ref<TaDoneItem[]>, getItemIndex: (datetime: 
   const onImportConfirm = () => {
     if (!importParseResult.value || importParseResult.value.items.length === 0) return
 
-    importParseResult.value.items.forEach(item => {
+    importParseResult.value.items.forEach((item) => {
       const idx = getItemIndex(item.datetime)
       if (idx < 0) {
-        itemList.value.push(item)
+        itemList.value!.push(item)
       } else if (importMode.value === 'overwrite') {
-        itemList.value[idx] = item
+        itemList.value![idx] = item
       }
     })
 
-    setItemToLocal({ itemList: itemList.value })
-    showImportModal.value = false
+    setItemToLocal({ itemList: itemList.value! })
+    isImportModalShowing.value = false
     importText.value = ''
     importParseResult.value = null
   }
 
   const closeImportModal = () => {
-    showImportModal.value = false
+    isImportModalShowing.value = false
     importText.value = ''
     importParseResult.value = null
   }
 
   return {
-    showImportModal,
+    isImportModalShowing,
     importMode,
     importText,
     importParseResult,

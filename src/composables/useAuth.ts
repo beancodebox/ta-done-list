@@ -1,26 +1,27 @@
-import { ref } from 'vue'
 import {
-  currentUser as authCurrentUser,
   signIn,
   signOut,
   signUp,
   waitForInitialAuth,
   getCurrentUser,
-} from '../services/auth'
+} from '@/services/auth'
+import {
+  loginEmail,
+  loginPassword,
+  currentUser,
+  isSignUpWorking,
+  isSignInWorking,
+  isSignOutWorking,
+  importParseResult,
+  importText,
+  isImportModalShowing,
+  isRightSidebarOpened,
+  itemList,
+  modifyingList,
+} from '@/stores/appState'
+import { clearLocalData } from '@/store'
 
 export function useAuth() {
-  const loginEmail = ref('')
-  const loginPassword = ref('')
-  const currentUser = ref<{
-    email: string
-    uid: string
-    timeZone?: string
-    locale?: string
-  } | null>(null)
-  const isSignUpWorking = ref(false)
-  const isSignInWorking = ref(false)
-  const isSignOutWorking = ref(false)
-
   const onSignUp = async () => {
     try {
       isSignUpWorking.value = true
@@ -28,7 +29,6 @@ export function useAuth() {
       const user = getCurrentUser()
       if (user?.email && user?.uid) {
         currentUser.value = { email: user.email, uid: user.uid }
-        authCurrentUser.value = user
       }
     } finally {
       isSignUpWorking.value = false
@@ -42,7 +42,6 @@ export function useAuth() {
       const user = getCurrentUser()
       if (user?.email && user?.uid) {
         currentUser.value = { email: user.email, uid: user.uid }
-        authCurrentUser.value = user
       }
     } finally {
       isSignInWorking.value = false
@@ -54,9 +53,15 @@ export function useAuth() {
       isSignOutWorking.value = true
       await signOut()
       currentUser.value = null
-      authCurrentUser.value = null
+      itemList.value = []
+      modifyingList.value = []
+      isRightSidebarOpened.value = false
+      isImportModalShowing.value = false
+      importText.value = ''
+      importParseResult.value = null
       loginEmail.value = ''
       loginPassword.value = ''
+      await clearLocalData()
     } finally {
       isSignOutWorking.value = false
     }
@@ -64,13 +69,6 @@ export function useAuth() {
 
   const initializeAuth = async () => {
     await waitForInitialAuth()
-    const user = authCurrentUser.value
-    if (user?.email && user?.uid) {
-      currentUser.value = {
-        email: user.email,
-        uid: user.uid,
-      }
-    }
   }
 
   return {

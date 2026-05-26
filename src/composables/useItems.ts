@@ -1,12 +1,7 @@
-import { ref } from 'vue'
-import { getItemFromLocal, setItemToLocal, type TaDoneItem, type TaDoneDatetime } from '../store'
-import { useAuth } from './useAuth'
+import { currentUser, itemList, newItemTitle } from '@/stores/appState'
+import { getItemFromLocal, setItemToLocal, type TaDoneItem, type TaDoneDatetime } from '@/store'
 
 export function useItems() {
-  const itemList = ref<Array<TaDoneItem>>([])
-  const newItemTitle = ref('')
-  const { currentUser } = useAuth()
-
   const calcDatetime = (_d: number | Date) => {
     const d = typeof _d === 'number' ? new Date(_d) : _d
 
@@ -30,7 +25,7 @@ export function useItems() {
         ...o,
         ...(['year', 'month', 'day', 'hour'].includes(d.type) ? { [d.type]: d.value } : {}),
       }),
-      {} as any,
+      {} as TaDoneDatetime,
     )
     return datetime
   }

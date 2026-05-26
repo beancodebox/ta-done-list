@@ -1,5 +1,7 @@
 import type { TaDoneItem } from '@/store'
 
+export type ImportMode = 'keep' | 'overwrite'
+
 export type ParseResult = {
   items: TaDoneItem[]
   errors: ParseError[]
@@ -146,7 +148,7 @@ export function exportTextDataFormat(items: TaDoneItem[]): string {
 
   // 날짜별로 그룹화
   const grouped = new Map<string, TaDoneItem[]>()
-  items.forEach(item => {
+  items.forEach((item) => {
     const dateKey = `${item.datetime.year}-${item.datetime.month}-${item.datetime.day}`
     if (!grouped.has(dateKey)) {
       grouped.set(dateKey, [])
@@ -159,12 +161,12 @@ export function exportTextDataFormat(items: TaDoneItem[]): string {
 
   // 텍스트 생성
   const lines: string[] = []
-  sortedDates.forEach(date => {
+  sortedDates.forEach((date) => {
     lines.push(date)
     const itemsForDate = grouped.get(date)!
     // 시간 순서대로 정렬
     itemsForDate.sort((a, b) => a.datetime.hour.localeCompare(b.datetime.hour))
-    itemsForDate.forEach(item => {
+    itemsForDate.forEach((item) => {
       lines.push(`${item.datetime.hour} ${item.title}`)
     })
     lines.push('')

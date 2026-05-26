@@ -7,10 +7,10 @@ import {
 } from 'firebase/auth'
 import { type TaDoneUser } from '@/store'
 import { auth, type User } from '@/firebase'
-import { ref } from 'vue'
 import { saveItemsToCloud } from './firestore'
+import { currentUser } from '@/stores/appState'
 
-export const currentUser = ref<User | null>(null)
+// export const currentUser = ref<User | null>(null)
 // export const authReady = ref(false)
 
 async function initTaDoneUser(user: User) {
@@ -69,14 +69,19 @@ export function getCurrentUser(): User | null {
 }
 
 export function waitForInitialAuth() {
-  return new Promise<User | null>((resolve, _reject) => {
+  return new Promise<{
+    email: string
+    uid: string
+    timeZone?: string
+    locale?: string
+  } | null>((resolve, _reject) => {
     const unsubscribe = onAuthStateChanged(auth, (user: User | null) => {
       unsubscribe()
-      resolve(user)
+      const appUser = user == null ? user : { email: user.email ?? '', uid: user.uid }
+      resolve(appUser)
     })
   }).then((user) => {
     currentUser.value = user
-    // authReady.value = true
   })
 }
 

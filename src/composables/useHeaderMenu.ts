@@ -1,7 +1,6 @@
-import { ref } from 'vue'
+import { isRightSidebarOpened } from '@/stores/appState'
 
 export function useHeaderMenu() {
-  const isRightSidebarOpened = ref(false)
   const toggleRightSidebar = () => {
     isRightSidebarOpened.value = !isRightSidebarOpened.value
   }

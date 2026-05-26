@@ -1,12 +1,8 @@
-import { ref, type Ref } from 'vue'
-import { getLocalUpdatedAt, setLocalUpdatedAt, type TaDoneItem } from '../store'
-import { syncWithCloud } from '../services/firestore'
+import { getLocalUpdatedAt, setItemToLocal, setLocalUpdatedAt } from '@/store'
+import { syncWithCloud } from '@/services/firestore'
+import { currentUser, isSynching, itemList } from '@/stores/appState'
 
-export function useSync(
-  itemList: Ref<TaDoneItem[]>,
-  currentUser: Ref<{ email: string; uid: string } | null>,
-) {
-  const isSynching = ref(false)
+export function useSync() {
   const onSync = async () => {
     try {
       isSynching.value = true
@@ -16,6 +12,7 @@ export function useSync(
         itemList.value = result.items
         if (result.isCloudNewer) {
           // Items already updated
+          setItemToLocal({ itemList: itemList.value })
         }
         setLocalUpdatedAt(result.timestamp)
       }
