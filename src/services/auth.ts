@@ -10,6 +10,17 @@ import { auth, type User } from '@/firebase'
 import { saveItemsToCloud } from './firestore'
 import { currentUser } from '@/stores/appState'
 
+function logFirebaseError(error: unknown): never {
+  if (typeof error === 'object' && error !== null) {
+    const firebaseError = error as { code?: string; message?: string }
+    console.error(firebaseError.code, firebaseError.message, error)
+  } else {
+    console.error(error)
+  }
+
+  throw error
+}
+
 // export const currentUser = ref<User | null>(null)
 // export const authReady = ref(false)
 
@@ -30,12 +41,8 @@ export async function signUp(email: string, password: string): Promise<User> {
     const user = userCredential.user
     await initTaDoneUser(user)
     return user
-  } catch (e: any) {
-    const error = e as any
-    const errorCode = error.code
-    const errorMessage = error.message
-    console.error(errorCode, errorMessage, error)
-    throw error
+  } catch (error: unknown) {
+    logFirebaseError(error)
   }
 }
 
@@ -45,23 +52,15 @@ export async function signIn(email: string, password: string): Promise<User> {
     // Signed up
     const user = userCredential.user
     return user
-  } catch (e: any) {
-    const error = e as any
-    const errorCode = error.code
-    const errorMessage = error.message
-    console.error(errorCode, errorMessage, error)
-    throw error
+  } catch (error: unknown) {
+    logFirebaseError(error)
   }
 }
 export async function signOut(): Promise<void> {
   try {
     await signOutUser(auth)
-  } catch (e: any) {
-    const error = e as any
-    const errorCode = error.code
-    const errorMessage = error.message
-    console.error(errorCode, errorMessage, error)
-    throw error
+  } catch (error: unknown) {
+    logFirebaseError(error)
   }
 }
 export function getCurrentUser(): User | null {

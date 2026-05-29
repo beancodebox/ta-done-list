@@ -10,6 +10,15 @@ import {
 } from '@/stores/appState'
 import { useItems } from './useItems'
 
+type ExportDateParts = {
+  year: string
+  month: string
+  day: string
+  hour: string
+  minute: string
+  second: string
+}
+
 export function useImport() {
   const { getItemIndex } = useItems()
 
@@ -69,7 +78,7 @@ export function useImport() {
 
     const locale = currentUser.value?.locale ?? 'ko-KR'
     const timeZone = currentUser.value?.timeZone ?? 'Asia/Seoul'
-    const { year, month, day, hour, minute, second } = ((d: Date | number) => {
+    const { year, month, day, hour, minute, second } = ((d: Date | number): ExportDateParts => {
       const formatter = new Intl.DateTimeFormat(locale, {
         timeZone: timeZone,
         year: 'numeric',
@@ -94,7 +103,7 @@ export function useImport() {
             [i.type]: i.value,
           }),
         }),
-        {} as any,
+        {} as ExportDateParts,
       )
     })(Date.now())
     anchor.download = `ta-done-export-${year}${month}${day}T${hour}${minute}${second}.txt`

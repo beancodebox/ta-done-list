@@ -2,6 +2,17 @@ import { doc, getDoc, setDoc } from 'firebase/firestore'
 import { db } from '@/firebase'
 import { type TaDoneUser, type TaDoneItem } from '@/store'
 
+function logFirebaseError(error: unknown): never {
+  if (typeof error === 'object' && error !== null) {
+    const firebaseError = error as { code?: string; message?: string }
+    console.error(firebaseError.code, firebaseError.message, error)
+  } else {
+    console.error(error)
+  }
+
+  throw error
+}
+
 export async function getItemsFromCloud(uid: string): Promise<TaDoneUser> {
   try {
     const data = await getDoc(doc(db, 'users', uid))
@@ -20,12 +31,8 @@ export async function getItemsFromCloud(uid: string): Promise<TaDoneUser> {
       tdUser.lastSynced = now
     }
     return tdUser
-  } catch (e: any) {
-    const error = e as any
-    const errorCode = error.code
-    const errorMessage = error.message
-    console.error(errorCode, errorMessage, error)
-    throw error
+  } catch (error: unknown) {
+    logFirebaseError(error)
   }
 }
 export async function saveItemsToCloud(uid: string, data: Partial<TaDoneUser>): Promise<void> {
@@ -38,12 +45,8 @@ export async function saveItemsToCloud(uid: string, data: Partial<TaDoneUser>): 
       lastSynced: now,
     } as TaDoneUser
     await setDoc(doc(db, 'users', uid), tdUser)
-  } catch (e: any) {
-    const error = e as any
-    const errorCode = error.code
-    const errorMessage = error.message
-    console.error(errorCode, errorMessage, error)
-    throw error
+  } catch (error: unknown) {
+    logFirebaseError(error)
   }
 }
 

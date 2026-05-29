@@ -4,6 +4,7 @@ import { useHeaderMenu } from '@/composables/useHeaderMenu'
 import { useItemModification } from '@/composables/useItemModification'
 import { useTemplateRef } from 'vue'
 import RightSidebarMenu from './RightSidebarMenu.vue'
+import ClockBadge from './ClockBadge.vue'
 
 
 const { toggleRightSidebar } = useHeaderMenu()
@@ -41,6 +42,9 @@ const showCalendarPicker = () => {
         <li><span class="button" @click="moveTargetDate('day', +1)"> &gt; </span></li>
       </ul>
       <ul>
+        <li>
+          <ClockBadge />
+        </li>
         <li><span class="button" @click="toggleRightSidebar">☰</span></li>
       </ul>
     </nav>
