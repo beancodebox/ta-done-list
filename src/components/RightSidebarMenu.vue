@@ -9,6 +9,7 @@ const { isRightSidebarOpened, toggleRightSidebar } = useHeaderMenu()
 const { isSynching, onSync } = useSync()
 const {
   onImportButtonClick,
+  onExportButtonClick,
 } = useImport()
 
 </script>
@@ -17,6 +18,7 @@ const {
     <span class="close-button" @click="toggleRightSidebar">X</span>
     <h4>{{ currentUser?.email }}</h4>
     <div role="button" @click="onImportButtonClick">Import</div>
+    <div role="button" @click="onExportButtonClick">Export</div>
     <div v-if="!isSynching" role="button" @click="onSync">Sync</div>
     <div v-else role="button" :aria-busy="true" />
     <div v-if="!isSignOutWorking" role="button" @click="onSignOut">Log Out</div>

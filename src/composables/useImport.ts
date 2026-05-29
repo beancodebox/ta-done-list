@@ -1,6 +1,7 @@
 import { setItemToLocal } from '@/store'
-import { parseTextDataFormat } from '@/services/importParser'
+import { parseTextDataFormat, exportTextDataFormat } from '@/services/importParser'
 import {
+  currentUser,
   importMode,
   importParseResult,
   importText,
@@ -10,9 +11,9 @@ import {
 import { useItems } from './useItems'
 
 export function useImport() {
-  // itemList: Ref<TaDoneItem[]>,
-  // getItemIndex: (datetime: any) => number
   const { getItemIndex } = useItems()
+
+  // import
   const onImportButtonClick = () => {
     isImportModalShowing.value = true
     importText.value = ''
@@ -51,6 +52,56 @@ export function useImport() {
     importParseResult.value = null
   }
 
+  // export
+  const onExportButtonClick = () => {
+    const targetItemList = itemList.value
+    if (!((targetItemList ?? []).length > 0)) return
+    const txt = exportTextDataFormat(targetItemList)
+
+    const anchor = document.createElement('a')
+    anchor.style.display = 'none'
+    anchor.style.width = '0'
+    anchor.style.height = '0'
+    anchor.style.opacity = '0'
+    const blob = new Blob([txt], { type: 'text/plain' })
+    const url = window.URL.createObjectURL(blob)
+    anchor.href = url
+
+    const locale = currentUser.value?.locale ?? 'ko-KR'
+    const timeZone = currentUser.value?.timeZone ?? 'Asia/Seoul'
+    const { year, month, day, hour, minute, second } = ((d: Date | number) => {
+      const formatter = new Intl.DateTimeFormat(locale, {
+        timeZone: timeZone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+      })
+      return formatter.formatToParts(d).reduce<{
+        year: string
+        month: string
+        day: string
+        hour: string
+        minute: string
+        second: string
+      }>(
+        (o, i) => ({
+          ...o,
+          ...(['year', 'month', 'day', 'hour', 'minute', 'second'].includes(i.type) && {
+            [i.type]: i.value,
+          }),
+        }),
+        {} as any,
+      )
+    })(Date.now())
+    anchor.download = `ta-done-export-${year}${month}${day}T${hour}${minute}${second}.txt`
+    anchor.click()
+    window.URL.revokeObjectURL(url)
+  }
+
   return {
     isImportModalShowing,
     importMode,
@@ -60,5 +111,6 @@ export function useImport() {
     onImportPreview,
     onImportConfirm,
     closeImportModal,
+    onExportButtonClick,
   }
 }
